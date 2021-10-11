@@ -1,0 +1,28 @@
+# A cobaya likelihood for WMAP v5
+
+path: null
+
+#Beam Deconvolution Uncertainty, see Appendix of Hinshaw et al 2006
+beam_mode: highl/top_ten_modes.beam_covariance_VW_combined.dat
+
+#Point Source Subtraction Uncertainty, see Appendix of Hinshaw et al 2006
+ptsrc_mode: highl/wmap_likelihood_inputs_ptsrc.p5_final.dat
+
+options:
+  use_lowl_TT: True #It includes TT pixel likelihood, for l<=lowl_max
+  use_lowl_pol: True #It includes TE,EE,BB pixel likelihood for l<24
+  use_TT: True #It includes MASTER TT in likelihood
+  use_TT_beam_ptsrc: True #It includes beam/ptsrc errors, see Appendix of Hinshaw et al 2006
+  use_TE: True #It includes MASTER TE in likelihood
+
+  #At the moment the direct evaluation of likelihood in pixel space 
+  #using a resolution 4 temperature map is not implemented
+  use_gibbs: True 
+
+
+
+
+
+
+
+params:
