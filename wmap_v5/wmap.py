@@ -1,5 +1,6 @@
 """
 .. module:: wmap_v5
+:Author: Umberto Natale
 
 """
 import os
@@ -22,7 +23,7 @@ class WMAP(InstallableLikelihood):
     ptsrc_mode: Optional[str]
 
     options: dict
-
+    
     gibbs_sigma_filename: Optional[str] = "lowlT/gibbs/sigmaEllsHkeChu_test16_ilc_9yr_5deg_r5_2uK_corrected_kq85y9_June_r5_all.fits"
     gibbs_first_iteration: Optional[int] = 10
     gibbs_last_iteration: Optional[int] = 120000
@@ -31,6 +32,11 @@ class WMAP(InstallableLikelihood):
 
     lowl_max: Optional[int] = 32
 
+    ttmax: Optional[int] = 1200
+    ttmin: Optional[int] = 2
+    temax: Optional[int] = 800
+    temin: Optional[int] = 2
+    
 
     def initialize(self):
         self.ires = 3
@@ -50,6 +56,11 @@ class WMAP(InstallableLikelihood):
         )
 
         self.data_folder = os.path.join(data_file_path, self.data_folder)
+        if not os.path.exists(self.data_folder):
+            raise LoggedError(
+                self.log,
+                f"The 'data_folder' directory does not exist. Check the given path [{self.data_folder}].",
+            )
 
         if self.options['use_lowl_pol']:
             self.initialize_lowl_pol_data()
@@ -70,6 +81,47 @@ class WMAP(InstallableLikelihood):
 
         data = gibbs_chain[0].data.T
         sigmas = data[:lmax,0,:numchains,:numsamples]
+
+        cl_file = os.path.normpath(os.path.join(self.data_folder,
+                                                                'lowlT/gibbs/test_cls.dat'))
+
+        cl_tt = np.loadtxt(cl_file,usecols=(1),unpack=True)[self.ttmin:self.gibbs_ell_max]
+
+        lmax_br = len(sigmas[self.ttmin:self.gibbs_ell_max, 1, 1]) + self.ttmin - 1
+        gibbs_idx = np.arange(self.gibbs_first_iteration,self.gibbs_last_iteration,self.gibbs_skip)
+        sigmas_br = sigmas[self.ttmin:lmax_br,:numchains,gibbs_idx]
+
+        offset = - 1.6375e30
+        subtotal = 0
+        for i in range(numsamples):
+            for j in range(numchains):
+                for l in range(0,lmax_br-self.ttmin+1):
+                    x = sigmas_br[l, j, i] / cl_tt[l]
+                    subtotal += 0.5*(2.*l+1.)*(-x+np.log(x)) - np.log(sigmas_br[l, j, i])
+
+        offset = max(offset,subtotal)
+
+        if (offset <-1.637e30):
+            print("Error: offset in br_mod_dist not being computed properly",
+                  "lmin = %s"%self.ttmin,
+                  "lmax = %s"%lmax_br,
+                  "numchain = %s"%numchains,
+                  "numsamples = %s"%numsamples,
+                  "offset = %s"%offset)
+
+        lnL = 0.
+        for i in range(numsamples):
+            for j in range(numchains):
+                subtotal = 0.
+                for l in range(0,lmax_br-self.ttmin+1):
+                    x = sigmas_br[l, j, i] / cl_tt[l]
+                    subtotal += 0.5*(2.*l+1.)*(-x+np.log(x)) - np.log(sigmas_br[l, j, i])
+                lnL = lnL + np.exp(subtotal-offset)
+
+        if lnL > 1e-20:
+            lnL = np.log(lnL)
+        else:
+            lnL = np.log(1e-30)
         
     
 
@@ -121,9 +173,9 @@ class WMAP(InstallableLikelihood):
         for l in range(0,self.nlmax+1):
             for m in range(0,l+1):
                 if np.sign(l2[i]) == -1:
-                    self.alm[l,m] = complex(str(l1[i])+'-'+str(abs(l2[i]))+'j')
+                    self.alm_tt[l,m] = complex(str(l1[i])+'-'+str(abs(l2[i]))+'j')
                 else:
-                    self.alm[l,m] = complex(str(l1[i])+'+'+str(abs(l2[i]))+'j') 
+                    self.alm_tt[l,m] = complex(str(l1[i])+'+'+str(abs(l2[i]))+'j') 
                 i+=1
 
         #Reading N^{-1}Y
@@ -159,12 +211,18 @@ class WMAP(InstallableLikelihood):
         self.w_r3[pix+mp] = map_u[goodpix[pix]]*Mask_R3[goodpix[pix]]
 
 
+        def get_requirements(self):
+            # State requisites to the theory code
+            return {"Cl": {cl: self.lmax for cl in self.use_cl}}
 
 
+        def loglike(self, dlte, dlee, **params_values):
+            print(self.w_r3)
 
 
-
-
+        def logp(self, **data_params):
+            Cls = self.provider.get_Cl(ell_factor=True)
+            return self.loglike(Cls.get("te"), Cls.get("ee"), **data_params)
 
 
 
