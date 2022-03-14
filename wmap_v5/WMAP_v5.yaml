@@ -11,6 +11,8 @@ ptsrc_mode: highl/wmap_likelihood_inputs_ptsrc.p5_final.dat
 options:
   use_lowl_TT: True #It includes TT pixel likelihood, for l<=lowl_max
   use_lowl_pol: True #It includes TE,EE,BB pixel likelihood for l<24
+  use_lowTBEB: False #Turns on low-l maxlike TB/EB
+  use_highl_TB: False #Turns on high-l master TB / not implemented yet
   use_TT: True #It includes MASTER TT in likelihood
   use_TT_beam_ptsrc: True #It includes beam/ptsrc errors, see Appendix of Hinshaw et al 2006
   use_TE: True #It includes MASTER TE in likelihood

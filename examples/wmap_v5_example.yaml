@@ -7,6 +7,8 @@ likelihood:
     options:
       use_lowl_TT: True #It includes TT pixel likelihood, for l<=lowl_max
       use_lowl_pol: True #It includes TE,EE,BB pixel likelihood for l<24
+      use_lowTBEB: False #Turns on low-l maxlike TB/EB
+      use_highl_TB: False #Turns on high-l master TB / not implemented yet
       use_TT: True #It includes MASTER TT in likelihood
       use_TT_beam_ptsrc: True #It includes beam/ptsrc errors, see Appendix of Hinshaw et al 2006
       use_TE: True #It includes MASTER TE in likelihood
@@ -16,6 +18,56 @@ likelihood:
       use_gibbs: True 
 
 
+params:
+  # Sampled
+  theta_MC_100:
+    prior:
+      min: 1.03
+      max: 1.05
+    proposal: 0.0022
+    latex: 100\theta_\mathrm{MC}
+    drop: True
+    renames: theta
+  cosmomc_theta:
+    value: 'lambda theta_MC_100: 1.e-2*theta_MC_100'
+    derived: false
+    latex: \theta_\mathrm{MC}
+  logA:
+    prior:
+      min: 2.6
+      max: 3.5
+    proposal: 0.0036
+    drop: True
+    latex: \log(10^{10} A_\mathrm{s})
+  As:
+    value: "lambda logA: 1e-10*np.exp(logA)"
+    latex: A_\mathrm{s}
+  ns:
+    prior:
+      min: 0.9
+      max: 1.1
+    proposal: 0.013
+    latex: n_\mathrm{s}
+  ombh2:
+    prior:
+      min: 0.017
+      max: 0.027
+    proposal: 0.0005
+    latex: \Omega_\mathrm{b}h^2
+  omch2:
+    prior:
+      min: 0.09
+      max: 0.15
+    proposal: 0.0045
+    latex: \Omega_\mathrm{c}h^2
+  tau:
+    prior:
+      min: 0.01
+      max: 0.1
+    proposal: 0.015
+    latex: \tau_\mathrm{reio}
+
+
 theory:
   camb:
     extra_args:
@@ -23,4 +75,6 @@ theory:
 
 sampler:
   mcmc:
+
+output: chains/mcmc_test
     
